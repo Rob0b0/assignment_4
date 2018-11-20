@@ -32,7 +32,7 @@ class AudioClassifier(Frame):
 		Frame.__init__(self, master)
 		self.master = master
 		self.audioPlayer = WavPlayer()
-		self.selectedAudioPath = '.\\Mizuki_Nana.wav'
+		self.selectedAudioPath = '.\\test.wav'
 		self.trainSet_musicPathList = glob.glob('./music/*.wav')
 		self.trainSet_speechPathList = glob.glob('./speech/*.wav')
 		self.testSetPathList = glob.glob('./testSet/music/*.wav') + glob.glob('./testSet/speech/*.wav')
