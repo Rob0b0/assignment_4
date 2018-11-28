@@ -20,8 +20,10 @@ import easygui
 
 from AudioInfo import *
 from mlModel import *
+from mfcc import *
 import AudioInfo
 import mlModel
+import mfcc
 
 from PIL import Image, ImageTk
 
@@ -32,9 +34,10 @@ class AudioClassifier(Frame):
 		Frame.__init__(self, master)
 		self.master = master
 		self.audioPlayer = WavPlayer()
-		self.selectedAudioPath = '.\\test.wav'
-		self.trainSet_musicPathList = glob.glob('./music/*.wav')
-		self.trainSet_speechPathList = glob.glob('./speech/*.wav')
+		self.PCAentity = mlModel.PCAcontroller(PCnum = 5)
+		self.selectedAudioPath = '.\\Mizuki_Nana.wav'
+		self.trainSet_musicPathList = glob.glob('./trainSet/music/*.wav')
+		self.trainSet_speechPathList = glob.glob('./trainSet/speech/*.wav')
 		self.testSetPathList = glob.glob('./testSet/music/*.wav') + glob.glob('./testSet/speech/*.wav')
 		self.modelName = None
 		self.trainThread = None
@@ -46,6 +49,8 @@ class AudioClassifier(Frame):
 		self.trainLabelVector = None
 		self.testAttributeMatrix = None
 		self.testLabelVector = None
+		self.pcaFlag = True
+		self.k = 2
 		# =================================================================================================================
 		# Create Main frame.
 		self.mainFrame = Frame(master)
@@ -305,7 +310,7 @@ class AudioClassifier(Frame):
 
 		if modelIndex == 0:
 			self.modelName = 'KNN'
-			self.model = mlModel.KnnModel()
+			self.model = mlModel.KnnModel(k = self.k)
 		elif modelIndex == 1:
 			self.modelName = 'SVM'
 			self.model = mlModel.SvmModel()
@@ -342,7 +347,8 @@ class AudioClassifier(Frame):
 	def train(self):
 
 		self.trainAttributeMatrix, self.trainLabelVector = self.prepareAttributeAndLabel_batch(filePathList = self.trainSet_musicPathList + self.trainSet_speechPathList)
-		reconstructedMatrix = mlModel.doPCA(matrix = self.trainAttributeMatrix, PCnum = 5)
+		# print('Debug: self.trainAttributeMatrix[0] =', self.trainAttributeMatrix[0])
+		reconstructedMatrix = self.PCAentity.PCA_train(matrix = self.trainAttributeMatrix, pcaFlag = self.pcaFlag)
 		self.model.train(attributeMatrix = reconstructedMatrix, labelVector = self.trainLabelVector)
 
 		self.setMainInfoLabel(text = 'Training Finish. Successfully build ' + self.modelName + ' model on training set.\nPlease press [predict] to move on.')
@@ -354,7 +360,7 @@ class AudioClassifier(Frame):
 
 		self.testAttributeMatrix, self.testLabelVector = self.prepareAttributeAndLabel_batch(filePathList = self.testSetPathList)
 
-		confusionMatrix = [[0, 0], [0, 0]]
+		confusionMatrix = [[0, 0, 0], [0, 0, 0]]
 
 		# help(self.musicListBox)
 		# zz = self.musicListBox.get(first = 0, last = END)
@@ -366,7 +372,8 @@ class AudioClassifier(Frame):
 		# mipa
 
 		for tempAttributeVector, tempLabel, tempPath, i in zip(self.testAttributeMatrix, self.testLabelVector, self.testSetPathList, list(range(len(self.testSetPathList)))):
-			predictValue = self.model.predict(attributeVector = tempAttributeVector)
+			# print('Debug: tempAttributeVector =', tempAttributeVector)
+			predictValue = self.model.predict(attributeVector = self.PCAentity.PCA_predict(vector = tempAttributeVector, pcaFlag = self.pcaFlag))
 			if predictValue == 'MUSIC':
 				self.musicListBox.insert(END, tempPath)
 			elif predictValue == 'SPEECH':
@@ -380,27 +387,40 @@ class AudioClassifier(Frame):
 					confusionMatrix[0][0] += 1
 				elif tempLabel == 'SPEECH':
 					confusionMatrix[1][1] += 1
+				else:
+					pass
+			elif tempLabel == 'UNKNOW':
+				print('Info: (?) unlabeled test data.')
+				if predictValue == 'MUSIC':
+					confusionMatrix[0][2] += 1
+				elif predictValue == 'SPEECH':
+					confusionMatrix[1][2] += 1
+				else:
+					pass
 			else:
 				print('Info: (x) prediction of audio', tempPath, 'is incorrect.')
 				if tempLabel == 'MUSIC':
 					confusionMatrix[1][0] += 1
 				elif tempLabel == 'SPEECH':
 					confusionMatrix[0][1] += 1
+				else:
+					pass
+
+		additionalColumn = ['', '', ''] if confusionMatrix[0][2] == 0 and confusionMatrix[1][2] == 0 else ['\tUnlabeled', '\t' + str(confusionMatrix[0][2]), '\t' + str(confusionMatrix[1][2])]
 
 		print('================================================================')
 		print('Confusion Matrix')
-		print('P\\A\tMusic\tSpeech')
-		print('Music\t' + str(confusionMatrix[0][0]) + '\t' + str(confusionMatrix[0][1]))
-		print('Speech\t' + str(confusionMatrix[1][0]) + '\t' + str(confusionMatrix[1][1]))
+		print('P\\A\tMusic\tSpeech' + additionalColumn[0])
+		print('Music\t' + str(confusionMatrix[0][0]) + '\t' + str(confusionMatrix[0][1]) + additionalColumn[1])
+		print('Speech\t' + str(confusionMatrix[1][0]) + '\t' + str(confusionMatrix[1][1]) + additionalColumn[2])
 		# self.musicListBox.insert(0, './test.wav')
 		# self.speechListBox.insert(0, './test2.wav')
-		self.setMainInfoLabel(text = 'Prediction Finish.')
+		self.setMainInfoLabel(text = 'Prediction Finish.\nClick on file name to load audio into player.')
 		self.isPredicting = False
 
 	
 
 
-		
 # =============================================================================================================================================================
 # =============================================================================================================================================================
 # =============================================================================================================================================================

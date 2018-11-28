@@ -6,18 +6,92 @@ from sklearn.svm import SVC
 import numpy
 import scipy.io as scio
 
-def doPCA(matrix, PCnum = 5):
+# def doPCA(matrix, PCnum = 5, pcaFlag = True):
 
-	matrix = np.matrix(matrix)
-	covMatrix = np.cov(m = matrix.T)
-	(eigenvalues, eigenvectors) = np.linalg.eig(covMatrix)
-	chosenEigenvalues = np.array(eigenvalues[0:PCnum])
-	chosenEigenvectors = np.matrix(eigenvectors[0:PCnum])
-	newMatrix = np.dot(matrix, chosenEigenvectors.T)
-	matrixReconstruct = np.dot(newMatrix, chosenEigenvectors)
-	matrixReconstruct = matrixReconstruct.tolist()
+# 	if pcaFlag is not True:
+# 		print('Info: Not doing PCA.')
+# 		return matrix
 
-	return matrixReconstruct
+# 	print('Info: PCA start.')
+
+# 	PCnum = min(PCnum, len(matrix[0]))
+
+# 	matrix = np.matrix(matrix)
+# 	covMatrix = np.cov(m = matrix.T)
+
+# 	covMatrix = (covMatrix + covMatrix.T)/2
+
+# 	(eigenvalues, eigenvectors) = np.linalg.eig(covMatrix)
+# 	chosenEigenvalues = np.array(eigenvalues[0:PCnum])
+# 	chosenEigenvectors = np.matrix(eigenvectors[0:PCnum])
+# 	newMatrix = np.dot(matrix, chosenEigenvectors.T)
+# 	matrixReconstruct = np.dot(newMatrix, chosenEigenvectors)
+# 	matrixReconstruct = matrixReconstruct.tolist()
+
+# 	if type(matrixReconstruct[0][0]) is type(1+1j):
+# 		print('Warning: Complex number in reconstructed matrix detected.')
+# 		print('         Only real part will remain.')
+# 		for i in range(len(matrixReconstruct)):
+# 			for j in range(len(matrixReconstruct[i])):
+# 				matrixReconstruct[i][j] = matrixReconstruct[i][j].real
+
+# 	# return matrix
+# 	return matrixReconstruct
+
+class PCAcontroller:
+
+	def __init__(self, PCnum = 5):
+		
+		self.PCnum = PCnum
+		self.chosenEigenvectors = None
+
+	def PCA_train(self, matrix, pcaFlag = True):
+
+		if pcaFlag is not True:
+			print('Info: Not doing PCA.')
+			return matrix
+
+		PCnum = self.PCnum
+		PCnum = min(PCnum, len(matrix[0]))
+		print('Info: PCA start. Principal Component number =', PCnum)
+
+		matrix = np.matrix(matrix)
+		covMatrix = np.cov(m = matrix.T)
+
+		covMatrix = (covMatrix + covMatrix.T)/2
+
+		(eigenvalues, eigenvectors) = np.linalg.eig(covMatrix)
+		chosenEigenvalues = np.array(eigenvalues[0:PCnum])
+		self.chosenEigenvectors = np.matrix(eigenvectors[0:PCnum])
+		newMatrix = np.dot(matrix, self.chosenEigenvectors.T)
+		# matrixReconstruct = np.dot(newMatrix, self.chosenEigenvectors)
+		# matrixReconstruct = matrixReconstruct.tolist()
+
+		if type(newMatrix[0][0]) is type(1+1j):
+			print('Warning: Complex number in reconstructed matrix detected.')
+			print('         Only real part will remain.')
+			for i in range(len(newMatrix)):
+				for j in range(len(newMatrix[i])):
+					newMatrix[i][j] = newMatrix[i][j].real
+
+		# return matrix
+		# print('Debug: newMatrix =', newMatrix)
+		return newMatrix.tolist()
+
+	def PCA_predict(self, vector, pcaFlag = True):
+
+		if (pcaFlag is not True) or (self.chosenEigenvectors is None):
+			return vector
+
+		matrix = np.matrix([vector])
+		newMatrix = np.dot(matrix, self.chosenEigenvectors.T)
+
+		# print('Debug: newMatrix.tolist()[0] =', newMatrix.tolist()[0])
+
+		return newMatrix.tolist()[0]
+
+
+# =================================================================================================================================
 
 class DecisionTreeModel:
 
@@ -45,10 +119,10 @@ class DecisionTreeModel:
 
 class KnnModel:
 
-	def __init__(self):
+	def __init__(self, k = 2):
 
 		self.isTrained = False
-		self.k = 2
+		self.k = k
 
 	def setParameters(self, k = 2, **parameters):
 
@@ -56,11 +130,18 @@ class KnnModel:
 
 	def train(self, attributeMatrix, labelVector):
 
+		# print('Debug: attributeMatrix[0] =', attributeMatrix[0])
+		# print('Debug: len(attributeMatrix[0]) =', len(attributeMatrix[0]))
+		# print('Debug: labelVector =', labelVector)
+
 		self.attributeMatrix = attributeMatrix
 		self.labelVector = labelVector
 		self.isTrained = True
 
 	def predict(self, attributeVector):
+
+		# print('Debug: attributeVector =', attributeVector)
+		# print('Debug: len(attributeVector) =', len(attributeVector))
 
 		deltaMatrix = np.tile(attributeVector, (len(self.attributeMatrix),1)) - self.attributeMatrix
 		distancesArray = ((deltaMatrix ** 2).sum(axis = 1)) ** 0.5
@@ -85,6 +166,8 @@ class SvmModel:
 		self.model = SVC()
 
 	def train(self, attributeMatrix, labelVector):
+
+		# print(attributeMatrix[0])
 
 		self.model = self.model.fit(attributeMatrix, labelVector)
 		self.isTrained = True

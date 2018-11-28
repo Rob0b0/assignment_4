@@ -11,6 +11,10 @@ import threading
 from tkinter import *
 import matplotlib.pyplot as plt
 
+import scipy.io.wavfile as wav
+import numpy
+import mfcc
+
 
 # def XOR(a, b):
 # 	return ((not a) and b) or (a and (not b))
@@ -115,23 +119,23 @@ class AudioData():
 		self.frequencyData = np.fft.fft(waveData)/len(waveData)
 		self.frequencyGraph_X = np.linspace(0, self.framerate/2, num = len(waveData)/2)
 		self.frequencyGraph_Y = abs(self.frequencyData[:int(len(self.frequencyData)/2)])
-		print('Info: successfully generate frequency graph.')
+		# print('Info: successfully generate frequency graph.')
 
 		return self.frequencyGraph_X, self.frequencyGraph_Y
 		# return self.frequencyGraph_X[:int(len(self.frequencyGraph_X)/4)], self.frequencyGraph_Y[:int(len(self.frequencyGraph_X)/4)]
 
 
-	def doFFT_versionC(self, waveData = None):
+	# def doFFT_versionC(self, waveData = None):
 
-		waveData = self.waveData[0] if waveData == None else waveData
+	# 	waveData = self.waveData[0] if waveData == None else waveData
 
-		print('Info: FFT start')
-		self.frequencyGraph_Y = (abs(fft(waveData))/self.nframes)[range(int(self.nframes/2))]
-		# self.frequencyGraph_Y = (abs(np.fft.fft(waveData))/self.nframes)[range(int(self.nframes/2))]
-		self.frequencyGraph_X = np.arange(len(waveData))[range(int(self.nframes/2))]
-		print('Info: FFT finish')
+	# 	print('Info: FFT start')
+	# 	self.frequencyGraph_Y = (abs(fft(waveData))/self.nframes)[range(int(self.nframes/2))]
+	# 	# self.frequencyGraph_Y = (abs(np.fft.fft(waveData))/self.nframes)[range(int(self.nframes/2))]
+	# 	self.frequencyGraph_X = np.arange(len(waveData))[range(int(self.nframes/2))]
+	# 	print('Info: FFT finish')
 
-		return self.frequencyGraph_X, self.frequencyGraph_Y
+	# 	return self.frequencyGraph_X, self.frequencyGraph_Y
 
 	def drawFrequencyGraph(self):
 
@@ -153,6 +157,7 @@ class AudioData():
 
 		binWidthList = [500] * 2 + [1000] * 7
 		binWidthList.reverse()
+		binWidthListLength = len(binWidthList)
 		self.binList = []
 		currentBin = 0
 		totalBin = 0
@@ -172,14 +177,32 @@ class AudioData():
 				currentBin += currentY
 		self.binList.append(currentBin)
 
+		while len(self.binList) < binWidthListLength:
+			self.binList.append(0)
+		self.binList = self.binList[:binWidthListLength]
+
 		self.binList = [tempBin/totalBin for tempBin in self.binList]
 
-		print(self.binList)
+		# print(self.binList)
 
 		return self.binList
 
 	def calculateBandwidth(self):
 		pass
+
+	def calculateMFCC(self, windowNum = 1):
+		
+		(rate,sig) = wav.read(self.filePath)
+		# print(len(sig), rate)
+		mfcc_feat = mfcc.calcMFCC_delta_delta(signal = sig, samplerate = rate, win_length = (len(sig)/rate)/windowNum)
+		# print(mfcc_feat.shape)
+
+		mfccVector = []
+		for i in range(len(mfcc_feat)):
+			mfccVector += [float(tempValue) for tempValue in list(mfcc_feat[i])][:13]
+
+		# print(mfccVector)
+		return mfccVector
 
 	def doFftAndDrawGraph(self):
 
@@ -201,9 +224,13 @@ class AudioData():
 			return 0 if self.label == 'MUSIC' else 1
 		
 		self.doFFT()
-		self.attributeList = [self.calculateAverageEnergy(), self.calculateZeroCrossingRate(), self.sampwidth, self.framerate] + self.calculateFrequencyHistogram()
-		# self.attributeList = [cheat()]
+		# self.attributeList = [self.calculateAverageEnergy(), self.calculateZeroCrossingRate(), self.sampwidth, self.framerate] + self.calculateFrequencyHistogram()
+		# self.attributeList = [cheat(), cheat(), 0]
 		self.attributeList = self.calculateFrequencyHistogram()
+		# self.attributeList += self.calculateMFCC()
+
+		# print(self.attributeList)
+
 		return self.attributeList
 
 
