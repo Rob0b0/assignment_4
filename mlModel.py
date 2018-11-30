@@ -48,12 +48,12 @@ class PCAcontroller:
 	def PCA_train(self, matrix, pcaFlag = True):
 
 		if pcaFlag is not True:
-			print('Info: Not doing PCA.')
+			print('Info: PCA process avoid. Use original attributes for model training.')
 			return matrix
 
 		PCnum = self.PCnum
 		PCnum = min(PCnum, len(matrix[0]))
-		print('Info: PCA start. Principal Component number =', PCnum)
+		print('Info: PCA start. Number of Principal Component =', PCnum)
 
 		matrix = np.matrix(matrix)
 		covMatrix = np.cov(m = matrix.T)
@@ -70,12 +70,15 @@ class PCAcontroller:
 		if type(newMatrix[0][0]) is type(1+1j):
 			print('Warning: Complex number in reconstructed matrix detected.')
 			print('         Only real part will remain.')
+			print('         Please check the consistency of data in matrix to avoid further error.')
 			for i in range(len(newMatrix)):
 				for j in range(len(newMatrix[i])):
 					newMatrix[i][j] = newMatrix[i][j].real
 
 		# return matrix
 		# print('Debug: newMatrix =', newMatrix)
+		print('Info: PCA process finish.')
+
 		return newMatrix.tolist()
 
 	def PCA_predict(self, vector, pcaFlag = True):
@@ -102,16 +105,22 @@ class DecisionTreeModel:
 
 	def train(self, attributeMatrix, labelVector):
 		
+		# print('Debug: attributeMatrix[0] =', attributeMatrix[0])
+		# print('Debug: len(attributeMatrix[0]) =', len(attributeMatrix[0]))
+		# print('Debug: labelVector =', labelVector)
+
 		self.model = self.model.fit(attributeMatrix, labelVector)
 		self.isTrained = True
 
 	def predict(self, attributeVector):
 
-		return self.model.predict(attributeVector)
+		# print('Debug: attributeVector =', attributeVector)
+		# print('Debug: len(attributeVector) =', len(attributeVector))
+		return self.model.predict([attributeVector]).tolist()[0]
 
 	def predict_batch(self, attributeMatrix):
 
-		return [self.predict(attributeVector = tempAttributeVector) for tempAttributeVector in attributeMatrix]
+		return self.model.predict(attributeMatrix)
 
 
 # =================================================================================================================================
@@ -123,6 +132,8 @@ class KnnModel:
 
 		self.isTrained = False
 		self.k = k
+		self.attributeMatrix = None
+		self.labelVector = None
 
 	def setParameters(self, k = 2, **parameters):
 
@@ -130,18 +141,11 @@ class KnnModel:
 
 	def train(self, attributeMatrix, labelVector):
 
-		# print('Debug: attributeMatrix[0] =', attributeMatrix[0])
-		# print('Debug: len(attributeMatrix[0]) =', len(attributeMatrix[0]))
-		# print('Debug: labelVector =', labelVector)
-
 		self.attributeMatrix = attributeMatrix
 		self.labelVector = labelVector
 		self.isTrained = True
 
 	def predict(self, attributeVector):
-
-		# print('Debug: attributeVector =', attributeVector)
-		# print('Debug: len(attributeVector) =', len(attributeVector))
 
 		deltaMatrix = np.tile(attributeVector, (len(self.attributeMatrix),1)) - self.attributeMatrix
 		distancesArray = ((deltaMatrix ** 2).sum(axis = 1)) ** 0.5
@@ -155,6 +159,10 @@ class KnnModel:
 
 		return sortedClassCount[0][0]
 
+	def predict_batch(self, attributeMatrix):
+
+		return [self.predict(attributeVector = tempAttributeVector) for tempAttributeVector in attributeMatrix]
+
 
 # =================================================================================================================================
 
@@ -166,8 +174,6 @@ class SvmModel:
 		self.model = SVC()
 
 	def train(self, attributeMatrix, labelVector):
-
-		# print(attributeMatrix[0])
 
 		self.model = self.model.fit(attributeMatrix, labelVector)
 		self.isTrained = True

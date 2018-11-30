@@ -226,7 +226,7 @@ class AudioData():
 		self.doFFT()
 		# self.attributeList = [self.calculateAverageEnergy(), self.calculateZeroCrossingRate(), self.sampwidth, self.framerate] + self.calculateFrequencyHistogram()
 		# self.attributeList = [cheat(), cheat(), 0]
-		self.attributeList = self.calculateFrequencyHistogram()
+		self.attributeList = self.calculateFrequencyHistogram() + [self.calculateZeroCrossingRate()] + [self.calculateAverageEnergy()]
 		# self.attributeList += self.calculateMFCC()
 
 		# print(self.attributeList)

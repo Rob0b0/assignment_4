@@ -16,7 +16,6 @@ import statistics
 import copy
 import threading
 import glob
-import easygui
 
 from AudioInfo import *
 from mlModel import *
@@ -45,6 +44,7 @@ class AudioClassifier(Frame):
 		self.model = None
 		self.isTraining = False
 		self.isPredicting = False
+		self.isTrained = False
 		self.trainAttributeMatrix = None
 		self.trainLabelVector = None
 		self.testAttributeMatrix = None
@@ -68,6 +68,9 @@ class AudioClassifier(Frame):
 
 		self.fourthLineFrame = Frame(self.mainFrame)
 		self.fourthLineFrame.grid(row = 3, column = 0, sticky = N)
+
+		self.fifthLineFrame = Frame(self.mainFrame)
+		self.fifthLineFrame.grid(row = 4, column = 0, sticky = N)
 
 		# =================================================================================================================
 
@@ -97,34 +100,40 @@ class AudioClassifier(Frame):
 		self.viewWaveButton = Button(master = self.playerControlFrame, text = 'View Wave', fg = 'black', padx = 10, width = 8, command = lambda: self.commandViewWave())
 		self.viewWaveButton.grid(row = 0, column = 2, sticky = W)
 
-		self.openDefaultPlayerButton = Button(master = self.playerControlFrame, text = 'open in sys default player', fg = 'black', padx = 10, width = 20, command = lambda: self.commandOpenByDefaultPlayer())
+		self.openDefaultPlayerButton = Button(master = self.playerControlFrame, text = 'Default Player', fg = 'black', padx = 10, width = 10, command = lambda: self.commandOpenByDefaultPlayer())
 		self.openDefaultPlayerButton.grid(row = 0, column = 3, sticky = W)
 
-		# =================================================================================================================
-		self.dividingLineLabel = Label(master = self.secondLineFrame, text = '---------------------------  ❄  ---------------------------')
-		self.dividingLineLabel.pack()
+		self.openDefaultPlayerButton = Button(master = self.playerControlFrame, text = 'Open', fg = 'black', padx = 10, width = 8, command = lambda: self.commandLoadAudioFileToPlayer())
+		self.openDefaultPlayerButton.grid(row = 0, column = 4, sticky = W)
 
-		self.infoLabel = Label(master = self.secondLineFrame, text = '')
+		# =================================================================================================================
+		self.dividingLine1Label = Label(master = self.secondLineFrame, text = '---------------------------  ❄  ---------------------------')
+		self.dividingLine1Label.pack()
+
+		self.infoLabel = Label(master = self.secondLineFrame, text = 'Choose a ML model and start training.\n(つ´ω`)つ ~★')
 		self.infoLabel.pack()
+
+		self.dividingLine2Label = Label(master = self.secondLineFrame, text = '-----------------------------------------------------------')
+		self.dividingLine2Label.pack()
 		# =================================================================================================================
-		# self.chooseTrainSetButton = Button(master = self.thirdLineFrame, text = 'open train set', fg = 'black', padx = 10, width = 10, command = lambda: self.commandChooseTrainSet())
-		# self.chooseTrainSetButton.grid(row = 0, column = 0)
-
-		# self.chooseTestSetButton = Button(master = self.thirdLineFrame, text = 'open test set', fg = 'black', padx = 10, width = 10, command = lambda: self.commandChooseTestSet())
-		# self.chooseTestSetButton.grid(row = 0, column = 1)
-
-		self.trainButton = Button(master = self.thirdLineFrame, text = 'Train', fg = 'black', padx = 10, width = 8, command = lambda: self.commandTrain())
-		self.trainButton.grid(row = 0, column = 0)
-
-		self.predictButton = Button(master = self.thirdLineFrame, text = 'Predict', fg = 'black', padx = 10, width = 8, command = lambda: self.commandPredict())
-		self.predictButton.grid(row = 0, column = 1)
-
 		self.modelVar = IntVar()
 		self.modelVar.set(0)
-		Radiobutton(self.thirdLineFrame, variable = self.modelVar, text = 'KNN Model',value = 0).grid(row = 0, column = 2)
-		Radiobutton(self.thirdLineFrame, variable = self.modelVar, text = 'SVM Model',value = 1).grid(row = 0, column = 3)
+		Radiobutton(self.thirdLineFrame, variable = self.modelVar, text = 'KNN Model',value = 0).grid(row = 0, column = 0)
+		Radiobutton(self.thirdLineFrame, variable = self.modelVar, text = 'SVM Model',value = 1).grid(row = 0, column = 1)
+		Radiobutton(self.thirdLineFrame, variable = self.modelVar, text = 'DecisionTree Model',value = 2).grid(row = 0, column = 2)
+		
 		# =================================================================================================================
-		self.trainSetFrame = Frame(master = self.fourthLineFrame)
+		self.trainButton = Button(master = self.fourthLineFrame, text = 'Train', fg = 'black', padx = 10, width = 8, command = lambda: self.commandTrain())
+		self.trainButton.grid(row = 0, column = 0)
+
+		self.predictButton = Button(master = self.fourthLineFrame, text = 'Predict', fg = 'black', padx = 10, width = 8, command = lambda: self.commandPredict())
+		self.predictButton.grid(row = 0, column = 1)
+
+		self.predictButton = Button(master = self.fourthLineFrame, text = 'New Test', fg = 'black', padx = 10, width = 8, command = lambda: self.commandNewTestSet())
+		self.predictButton.grid(row = 0, column = 2)
+
+		# =================================================================================================================
+		self.trainSetFrame = Frame(master = self.fifthLineFrame)
 		self.trainSetFrame.grid(row = 0, column = 0)
 
 		self.trainTitleLable = Label(master = self.trainSetFrame, text = 'Train Set:')
@@ -149,7 +158,7 @@ class AudioClassifier(Frame):
 		self.trainListBox.bind('<<ListboxSelect>>', self.commandSelectAudioFromListBox_trainSet)
 		self.trainListScrollbar.config(command = self.trainListBox.yview)
 		# -----------------------------------------------------------------------------------------------------------------
-		self.testSetFrame = Frame(master = self.fourthLineFrame)
+		self.testSetFrame = Frame(master = self.fifthLineFrame)
 		self.testSetFrame.grid(row = 0, column = 1)
 
 		self.testTitleLable = Label(master = self.testSetFrame, text = 'Test Set:')
@@ -171,7 +180,7 @@ class AudioClassifier(Frame):
 		self.testListBox.bind('<<ListboxSelect>>', self.commandSelectAudioFromListBox_testSet)
 		self.testListScrollbar.config(command = self.testListBox.yview)
 		# -----------------------------------------------------------------------------------------------------------------
-		self.musicSetFrame = Frame(master = self.fourthLineFrame)
+		self.musicSetFrame = Frame(master = self.fifthLineFrame)
 		self.musicSetFrame.grid(row = 0, column = 2)
 
 		self.musicTitleLable = Label(master = self.musicSetFrame, text = 'Music:')
@@ -189,7 +198,7 @@ class AudioClassifier(Frame):
 		self.musicListBox.bind('<<ListboxSelect>>', self.commandSelectAudioFromListBox_musicSet)
 		self.musicListScrollbar.config(command = self.musicListBox.yview)
 		# -----------------------------------------------------------------------------------------------------------------
-		self.speechSetFrame = Frame(master = self.fourthLineFrame)
+		self.speechSetFrame = Frame(master = self.fifthLineFrame)
 		self.speechSetFrame.grid(row = 0, column = 3)
 
 		self.speechTitleLable = Label(master = self.speechSetFrame, text = 'Speech:')
@@ -270,9 +279,20 @@ class AudioClassifier(Frame):
 
 	def commandViewWave(self):
 		AudioData(filePath = self.selectedAudioPath).doFftAndDrawGraph()
+		# picThread = threading.Thread(target = self.drawWave, args = ())
+		# picThread.setDaemon(True)
+		# picThread.start()
 
 	def commandOpenByDefaultPlayer(self):
 		os.startfile(self.selectedAudioPath)
+
+	def commandLoadAudioFileToPlayer(self):
+		tempPath = easygui.fileopenbox('pygame player', 'open', filetypes = '*.txt', multiple = False)
+		if tempPath is None:
+			return
+		self.selectedAudioPath = tempPath
+		self.setSelectedAudioInfo(text = self.selectedAudioPath)
+		self.commandStop()
 
 	def selectAudioFromListBox(self, listBox):
 		if len(listBox.curselection()) == 0:
@@ -295,15 +315,20 @@ class AudioClassifier(Frame):
 	def commandSelectAudioFromListBox_speechSet(self, event):
 		self.selectAudioFromListBox(listBox = self.speechListBox)
 
-	def commandChooseTrainSet(self):
-		pass
+	# def commandChooseTrainSet(self):
+	# 	pass
 
-	def commandChooseTestSet(self):
-		pass
+	# def commandChooseTestSet(self):
+	# 	pass
 
 	def commandTrain(self):
 
 		print('Info: command train')
+
+		if self.isTraining is True or self.isPredicting is True:
+			print('Info: Training request refused. Training/Predicting thread is running.')
+			self.setMainInfoLabel(text = 'Command rejected.\nTraining/Predicting thread is running. Be patient!')
+			return
 		
 		self.isTraining = True
 		modelIndex = self.modelVar.get()
@@ -314,6 +339,9 @@ class AudioClassifier(Frame):
 		elif modelIndex == 1:
 			self.modelName = 'SVM'
 			self.model = mlModel.SvmModel()
+		elif modelIndex == 2:
+			self.modelName = 'DecitionTree'
+			self.model = mlModel.DecisionTreeModel()
 		else:
 			self.modelName = 'UNDEFINED'
 
@@ -328,8 +356,13 @@ class AudioClassifier(Frame):
 	def commandPredict(self):
 		print('Info: command predict')
 
-		if self.model == None:
-			self.commandTrain()
+		if self.model is None or self.isTrained is False or self.isTraining is True:
+			if self.isTraining is False:
+				print('Info: Prediction request refused. Force training.')
+				self.commandTrain()
+			else:
+				print('Info: Prediction request refused. Training/Predicting thread is running.')
+				self.setMainInfoLabel(text = 'Command rejected.\nTraining/Predicting thread is running. Be patient!')
 			return
 		
 		self.isPredicting = True
@@ -339,6 +372,13 @@ class AudioClassifier(Frame):
 		self.predictThread = threading.Thread(target = self.predict, args = ())
 		self.predictThread.setDaemon(True)
 		self.predictThread.start()
+
+	def commandNewTestSet(self):
+
+		self.testSetPathList = easygui.fileopenbox('pygame player', 'open', filetypes = '*.*', multiple = True)
+		self.testListBox.delete(first = 0, last = END)
+		for tempPath in self.testSetPathList:
+			self.testListBox.insert(END, tempPath)
 		
 
 
@@ -353,6 +393,7 @@ class AudioClassifier(Frame):
 
 		self.setMainInfoLabel(text = 'Training Finish. Successfully build ' + self.modelName + ' model on training set.\nPlease press [predict] to move on.')
 		self.isTraining = False
+		self.isTrained = True
 
 	# =======================================================================================================================================================
 
@@ -417,6 +458,11 @@ class AudioClassifier(Frame):
 		# self.speechListBox.insert(0, './test2.wav')
 		self.setMainInfoLabel(text = 'Prediction Finish.\nClick on file name to load audio into player.')
 		self.isPredicting = False
+
+
+	# =============================================================================================================================================================
+	def drawWave(self):
+		AudioData(filePath = self.selectedAudioPath).doFftAndDrawGraph()
 
 	
 
