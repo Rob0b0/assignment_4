@@ -12,9 +12,7 @@ from tkinter import *
 import matplotlib.pyplot as plt
 
 import scipy.io.wavfile as wav
-import numpy
 import mfcc
-
 
 # def XOR(a, b):
 # 	return ((not a) and b) or (a and (not b))
@@ -76,6 +74,12 @@ class AudioData():
 		return (self.waveData, self.timePointList)
 
 	# ==========================================================================================================
+	def silenceRatio(self, waveData):
+		silencesum = 0
+		for amp in waveData:
+			if abs(amp) < 300:
+				silencesum += 1
+		return silencesum/len(waveData)
 
 	def calculateAverageEnergy(self, waveData = None):
 		
@@ -226,9 +230,13 @@ class AudioData():
 		self.doFFT()
 		# self.attributeList = [self.calculateAverageEnergy(), self.calculateZeroCrossingRate(), self.sampwidth, self.framerate] + self.calculateFrequencyHistogram()
 		# self.attributeList = [cheat(), cheat(), 0]
-		self.attributeList = self.calculateFrequencyHistogram() + [self.calculateZeroCrossingRate()] + [self.calculateAverageEnergy()]
+		# self.attributeList = self.calculateFrequencyHistogram() + [self.calculateZeroCrossingRate()] + \
+		# 		[self.calculateAverageEnergy()]+[self.silenceRatio(self.waveData[0])]
+		# self.attributeList =[self.silenceRatio(self.waveData[0])]
 		# self.attributeList += self.calculateMFCC()
-
+		#self.attributeList = [self.calculateZeroCrossingRate()]+[self.silenceRatio(self.waveData[0])]+[self.calculateAverageEnergy()]
+		self.attributeList = self.calculateFrequencyHistogram() + [self.silenceRatio(self.waveData[0])]
+		# 		[self.calculateAverageEnergy()]+[self.silenceRatio(self.waveData[0])]
 		# print(self.attributeList)
 
 		return self.attributeList
