@@ -3,6 +3,7 @@ import numpy as np
 from sklearn import tree
 import operator
 from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
 import numpy
 import scipy.io as scio
 
@@ -101,7 +102,7 @@ class DecisionTreeModel:
 	def __init__(self):
 		
 		self.isTrained = False
-		self.model = tree.DecisionTreeClassifier()
+		self.model = RandomForestClassifier(n_estimators=500, criterion='gini', max_depth=10, min_samples_split=3)
 
 	def train(self, attributeMatrix, labelVector):
 		
@@ -137,7 +138,7 @@ class KnnModel:
 
 	def setParameters(self, k = 2, **parameters):
 
-		self.k = k
+		self.k = 3
 
 	def train(self, attributeMatrix, labelVector):
 
@@ -171,7 +172,7 @@ class SvmModel:
 	def __init__(self):
 
 		self.isTrained = False
-		self.model = SVC()
+		self.model = SVC(C=1.5, kernel='linear')
 
 	def train(self, attributeMatrix, labelVector):
 
