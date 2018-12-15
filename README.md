@@ -3,6 +3,10 @@
 训练集位置：./train/music/*.wav 和 ./train/speech/*.wav <br />
 测试集位置：./test/music/*.wav 和 ./test/speech/*.wav <br />
 默认音频： ./Mizuki_Nana.wav <br />
+-
+2018-12-8
+After tuning parameters, the accuracy on our test sets goes to 100% and 80% on sample sets.
+-
 <hr />
 <p>
 <strong>2018-11-30 03:57:00</strong> <br />
